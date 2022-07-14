@@ -1,0 +1,460 @@
+---
+title: "fig3"
+author: "xm"
+date: "4/29/2022"
+output: html_document
+---
+
+```{r}
+#bacterial origin of resistome rdata from healthy infants
+load("~/infantsampledata/2021/Rcode/bacterial_origion_resis/2022/0423_ssankey/042922/class_genus_phyla_042922.RData")#zz2
+#map_healthy_infant
+load("~/infantsampledata/2021/Rcode/bacterial_origion_resis/2022/0423_ssankey/042922/map_healthy_infant853.RData")
+```
+
+#Fig3a
+```{r}
+library(rbokeh)
+library(trelliscope)
+library(data.table)
+library(networkD3)
+library(rbokeh)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+`%not_in%` <- purrr::negate(`%in%`)
+healthy_df<-merge(zz2,map_healthy_infant,by="RUN")[,c("RUN","Class","genus","phyla","value","Month")]
+healthy_df[healthy_df$genus %not_in% c("Bacteroides","Bifidobacterium","Klebsiella","Escherichia"),'genus']<-'Other genus'
+healthy_df[healthy_df$phyla %not_in% c('Bacteroidetes','Actinobacteria','Firmicutes','Firmicutes','Proteobacteria'),'phyla']<-'Other phyla'
+healthy_df<-aggregate(value~RUN + Class+genus+phyla+Month, FUN = sum, data=healthy_df)
+healthy_df<-aggregate(value~Class+genus+phyla+Month,FUN=mean,data=healthy_df)
+healthy_df$value<-healthy_df$value/sum(healthy_df$value)
+```
+
+
+```{r}
+Escherichia_df=healthy_df[healthy_df$genus=='Escherichia',]
+Escherichia_df=aggregate(value~Class+genus,FUN=mean,data=Escherichia_df) 
+Escherichia_summary=as.data.frame(Escherichia_df %>% mutate(value/sum(value)))
+head(Escherichia_summary[order(Escherichia_summary$`value/sum(value)`,decreasing = T),])
+```
+```{r}
+Bifidobacterium_df=healthy_df[healthy_df$genus=='Bifidobacterium',]
+Bifidobacterium_df=aggregate(value~Class+genus,FUN=mean,data=Bifidobacterium_df) 
+Bifidobacterium_summary=as.data.frame(Bifidobacterium_df %>% mutate(value/sum(value)))
+head(Bifidobacterium_summary[order(Bifidobacterium_summary$`value/sum(value)`,decreasing = T),])
+```
+
+
+```{r}
+month_df<-healthy_df[,c('Month','Class','value')]
+res_df<-healthy_df[,c('Class','genus','value')]
+genus_df<-healthy_df[,c('genus','phyla','value')]
+names(month_df)[1]<-'source'
+names(month_df)[2]<-'target'
+month_df$source<-as.character(month_df$source)
+names(res_df)[1]<-'source'
+names(res_df)[2]<-'target'
+names(genus_df)[1]<-'source'
+names(genus_df)[2]<-'target'
+month_df<-aggregate(value~source+target,FUN=sum,data=month_df)
+res_df<-aggregate(value~source+target,FUN=sum,data=res_df)
+genus_df<-aggregate(value~source+target,FUN=sum,data=genus_df)
+foverall_z4<-bind_rows(month_df,bind_rows(res_df,genus_df))
+
+```
+
+
+```{r}
+foverall_z4$source[foverall_z4$source == "0"] <-'Month 0'
+foverall_z4$source[foverall_z4$source == "1"] <-'Month 1'
+foverall_z4$source[foverall_z4$source == "2"] <-'Month 2'
+foverall_z4$source[foverall_z4$source == "3"] <-'Month 3'
+foverall_z4$source[foverall_z4$source == "4"] <-'Month 4'
+foverall_z4$source[foverall_z4$source == "5"] <-'Month 5'
+foverall_z4$source[foverall_z4$source == "6"] <-'Month 6'
+foverall_z4$source[foverall_z4$source == "7"] <-'Month 7'
+foverall_z4$source[foverall_z4$source == "8"] <-'Month 8'
+foverall_z4$source[foverall_z4$source == "9"] <-'Month 9'
+foverall_z4$source[foverall_z4$source == "10"] <-'Month 10'
+foverall_z4$source[foverall_z4$source == "11"] <-'Month 11'
+foverall_z4$source[foverall_z4$source == "12"] <-'Month 12'
+foverall_z4$source[foverall_z4$source == "13"] <-'Month 13'
+foverall_z4$source[foverall_z4$source == "14"] <-'Month 14'
+
+foverall_z4$source[foverall_z4$source == "Cationic_antimicrobial_peptides"]<-"Cationic antimicrobial peptides"
+foverall_z4$source[foverall_z4$source == "Copper_resistance"]<-"Copper resistance"
+foverall_z4$source[foverall_z4$source == "Biocide_and_metal_resistance"]<-"Biocide and metal resistance"
+foverall_z4$source[foverall_z4$source == "Drug_and_biocide_and_metal_resistance"]<-"DBM resistance"
+foverall_z4$source[foverall_z4$source == "Nickel_resistance"]<-"Nickel resistance"
+foverall_z4$source[foverall_z4$source == "Peroxide_resistance"]<-"Peroxide resistance"
+foverall_z4$source[foverall_z4$source == "Acetate_resistance"] <-'Acetate resistance'
+foverall_z4$source[foverall_z4$source == "Chromium_resistance"] <-'Chromium resistance'
+foverall_z4$source[foverall_z4$source == "Sodium_resistance"] <-'Sodium resistance'
+foverall_z4$source[foverall_z4$source == "Zinc_resistance"]<-"Zinc resistance"
+foverall_z4$source[foverall_z4$source == "betalactams"]<-"β-lactams"
+foverall_z4$source[foverall_z4$source == "Multi-biocide_resistance"] <-'Multi-biocide resistance'
+foverall_z4$source[foverall_z4$source == "Multi-drug_resistance"] <-'Multi-drug resistance'
+foverall_z4$source[foverall_z4$source == "Multi-metal_resistance"] <-'Multi-metal resistance'
+foverall_z4$source[foverall_z4$source == "Drug_and_biocide_resistance"] <-'Drug and biocide resistance'
+foverall_z4$source[foverall_z4$source == "Acid_resistance"] <-'Acid resistance'
+foverall_z4$source[foverall_z4$source == "Arsenic_resistance"] <-'Arsenic resistance'
+
+
+foverall_z4$target[foverall_z4$target == "Cationic_antimicrobial_peptides"]<-"Cationic antimicrobial peptides"
+foverall_z4$target[foverall_z4$target == "Copper_resistance"]<-"Copper resistance"
+foverall_z4$target[foverall_z4$target == "Biocide_and_metal_resistance"]<-"Biocide and metal resistance"
+foverall_z4$target[foverall_z4$target == "Drug_and_biocide_and_metal_resistance"]<-"DBM resistance"
+foverall_z4$target[foverall_z4$target == "Nickel_resistance"]<-"Nickel resistance"
+foverall_z4$target[foverall_z4$target == "Peroxide_resistance"]<-"Peroxide resistance"
+foverall_z4$target[foverall_z4$target == "Acetate_resistance"] <-'Acetate resistance'
+foverall_z4$target[foverall_z4$target == "Chromium_resistance"] <-'Chromium resistance'
+foverall_z4$target[foverall_z4$target == "Sodium_resistance"] <-'Sodium resistance'
+foverall_z4$target[foverall_z4$target == "Zinc_resistance"]<-"Zinc resistance"
+foverall_z4$target[foverall_z4$target == "betalactams"]<-"β-lactams"
+foverall_z4$target[foverall_z4$target == "Multi-biocide_resistance"] <-'Multi-biocide resistance'
+foverall_z4$target[foverall_z4$target == "Multi-drug_resistance"] <-'Multi-drug resistance'
+foverall_z4$target[foverall_z4$target == "Multi-metal_resistance"] <-'Multi-metal resistance'
+foverall_z4$target[foverall_z4$target == "Drug_and_biocide_resistance"] <-'Drug and biocide resistance'
+foverall_z4$target[foverall_z4$target == "Acid_resistance"] <-'Acid resistance'
+foverall_z4$target[foverall_z4$target == "Arsenic_resistance"] <-'Arsenic resistance'
+
+```
+
+```{r}
+sanktify <- function(x) {
+
+  # Create nodes DF with the unique sources & targets from input
+  
+  #  ***** changing this is the key***********************************************************
+  nodes <- data.frame(unique(c(x$source,x$target)),stringsAsFactors=TRUE)
+  # ************************************************************************************************
+  nodes$ID <- as.numeric(rownames(nodes)) - 1 # sankeyNetwork requires IDs to be zero-indexed
+  names(nodes) <- c("name", "ID")
+  
+  nodes$group <- as.factor(c("a","a","a","a","a","a","a","a","a","a","a","a","a","a","a",
+                             "biocides","biocides","drugs","metals","drugs","drugs","multi-compounds",
+                             "drugs","metals","metals","multi-compounds","multi-compounds",
+                             "drugs","biocides","drugs","metals","drugs","metals","biocides",
+                             "metals","drugs","metals",
+
+                             #"bac","act","firm","firm","unk","pro","firm",
+                             "b","b","b","b","b",
+                             "c","c","c","c","c"))
+  names(nodes) <- c("name", "ID","group")
+  
+  # use dplyr join over merge since much better; in this case not big enough to matter
+  # Replace source & target in links DF with IDs
+  links <- inner_join(x, nodes, by = c("source"="name")) 
+  names(links)[names(links)=='ID']<-'source_ID'
+  
+  links<-inner_join(links,nodes, by = c("target"="name")) 
+  names(links)[names(links)=='ID']<-'target_ID'
+  
+  links=mutate(links,linkgroup=case_when(target=='Acid resistance'|target=='Multi-biocide resistance'|target=='Acetate resistance'|target=='Peroxide resistance'~'lbiocides',
+                                         target=='Aminoglycosides'|target=='Bacitracin'| target=='β-lactams'| target=='Cationic antimicrobial peptides'|target=='MLS'|target=='Multi-drug resistance'|target=='Mupirocin'|target=='Tetracyclines'~'ldrugs',
+                                         target=='Multi-metal resistance'|target=='Arsenic resistance'|target=='Chromium resistance'|target=='Nickel resistance'|target=='Sodium resistance'|target=="Copper resistance"|target=="Zinc resistance"~'lmetals',
+                                         target=='Drug and biocide resistance'|target=="Biocide and metal resistance"|target=="DBM resistance"~'lmulti-compounds',
+                                         source=='Acid resistance'|source=='Multi-biocide resistance'|source=='Acetate resistance'|source=='Peroxide resistance'~'lbiocides',
+                                         source=='Aminoglycosides'|source=='Bacitracin'|source=='β-lactams'| source=='Cationic antimicrobial peptides'|source=='MLS'|source=='Multi-drug resistance'|source=='Mupirocin'|source=='Tetracyclines'~'ldrugs',
+                                         source=='Multi-metal resistance'|source=='Arsenic resistance'|source=='Chromium resistance'|source=='Nickel resistance'|source=='Sodium resistance'|source=="Copper resistance"|source=="Zinc resistance"~'lmetals',
+                                         source=='Drug and biocide resistance'|source=="Biocide and metal resistance"|source=="DBM resistance"~'lmulti-compounds',
+                                         target=='Bacteroidetes'~'lbac',
+                                         target=='Actinobacteria'~'lbif',
+                                         target=='Firmicutes'~'lfirm',
+                                         target=='Proteobacteria'~'lpro',
+                                         TRUE~'la'))
+  # Give a color for each group:
+  my_color <- 'd3.scaleOrdinal() .domain(["la", "ldrugs","lbiocides","lmetals","lmulti-compounds",
+  "a","b","c","drugs","biocides","metals","multi-compounds",
+  "lbac","lbif","lfirm","lpro"]) .range(["#A9A9A9"	 ,"#4DBBD599", "#00A08799",
+  "#3C548899", "#F39B7F99",
+  "#E64B3599","#FFDC91FF","#BC3C29FF",
+  "#0072B5FF","#20854EFF","#7876B1FF","#E18727FF",
+  "#7570B3", "#E7298A" ,"#66A61E", "#E6AB02"
+  ])'
+  
+  # Create Sankey Plot
+  sank <- sankeyNetwork(
+    Links = links,
+    Nodes = nodes,
+    Source ="source_ID",
+    Target = "target_ID",
+    Value = "value",
+    NodeID = "name",
+    colourScale=my_color, 
+    LinkGroup="linkgroup",
+    NodeGroup='group',
+    fontSize = 18,
+    fontFamily = 'arial',
+    nodeWidth = 25,
+    height=800,
+    width=1400,
+    #margin= list(top = 150),
+    iterations=0
+  )
+  
+  return(sank)
+  
+}
+```
+
+```{r}
+
+sanktify(foverall_z4)
+```
+
+#supplementaryfig3
+
+```{r}
+sanktify <- function(x) {
+  
+  # Create nodes DF with the unique sources & targets from input
+  
+  #  ***** changing this is the key***********************************************************
+  nodes <- data.frame(unique(c(x$source,x$target)),stringsAsFactors=FALSE)
+  # ************************************************************************************************
+  nodes$ID <- as.numeric(rownames(nodes)) - 1 # sankeyNetwork requires IDs to be zero-indexed
+  names(nodes) <- c("name", "ID")
+  
+  # use dplyr join over merge since much better; in this case not big enough to matter
+  # Replace source & target in links DF with IDs
+  links <- inner_join(x, nodes, by = c("source"="name")) 
+  names(links)[names(links)=='ID']<-'source_ID'
+  
+  links<-inner_join(links,nodes, by = c("target"="name")) 
+  names(links)[names(links)=='ID']<-'target_ID'
+  
+  # Create Sankey Plot
+  sank <- sankeyNetwork(
+    Links = links,
+    Nodes = nodes,
+    Source = "source_ID",
+    Target = "target_ID",
+    Value = "value",
+    NodeID = "name",
+    fontSize = 12,
+    nodeWidth = 30
+  )
+  
+  return(sank)
+  
+}
+```
+
+
+```{r}
+`%not_in%` <- purrr::negate(`%in%`)
+healthy_df<-merge(zz2,map_healthy_infant,by="RUN")[,c("RUN","Class","genus","phyla","value","Month")]
+healthy_df[healthy_df$genus %not_in% c("Bacteroides","Bifidobacterium","Klebsiella","Escherichia"),'genus']<-'Other genus'
+healthy_df[healthy_df$phyla %not_in% c('Bacteroidetes','Actinobacteria','Firmicutes','Firmicutes','Proteobacteria'),'phyla']<-'Other phyla'
+healthy_df<-aggregate(value~RUN + Class+genus+phyla+Month, FUN = sum, data=healthy_df)
+healthy_df<-aggregate(value~Class+genus+phyla+Month,FUN=mean,data=healthy_df)
+#healthy_df$pct<-healthy_df$value/sum(healthy_df$value)
+```
+
+```{r}
+healthy_df$Class[healthy_df$Class == "Cationic_antimicrobial_peptides"]<-"Cationic antimicrobial peptides"
+healthy_df$Class[healthy_df$Class == "Copper_resistance"]<-"Copper resistance"
+healthy_df$Class[healthy_df$Class == "Biocide_and_metal_resistance"]<-"Biocide and metal resistance"
+healthy_df$Class[healthy_df$Class == "Drug_and_biocide_and_metal_resistance"]<-"DBM resistance"
+healthy_df$Class[healthy_df$Class == "Nickel_resistance"]<-"Nickel resistance"
+healthy_df$Class[healthy_df$Class == "Peroxide_resistance"]<-"Peroxide resistance"
+healthy_df$Class[healthy_df$Class == "Acetate_resistance"] <-'Acetate resistance'
+healthy_df$Class[healthy_df$Class == "Chromium_resistance"] <-'Chromium resistance'
+healthy_df$Class[healthy_df$Class == "Sodium_resistance"] <-'Sodium resistance'
+healthy_df$Class[healthy_df$Class == "Zinc_resistance"]<-"Zinc resistance"
+healthy_df$Class[healthy_df$Class == "betalactams"]<-"β-lactams"
+healthy_df$Class[healthy_df$Class == "Multi-biocide_resistance"] <-'Multi-biocide resistance'
+healthy_df$Class[healthy_df$Class == "Multi-drug_resistance"] <-'Multi-drug resistance'
+healthy_df$Class[healthy_df$Class == "Multi-metal_resistance"] <-'Multi-metal resistance'
+healthy_df$Class[healthy_df$Class == "Drug_and_biocide_resistance"] <-'Drug and biocide resistance'
+healthy_df$Class[healthy_df$Class == "Acid_resistance"] <-'Acid resistance'
+healthy_df$Class[healthy_df$Class == "Arsenic_resistance"] <-'Arsenic resistance'
+```
+
+
+```{r}
+for (i in c(0:14)){
+
+  healthy_subdf<-healthy_df[healthy_df$Month==i,]
+
+ #identify top5 resistome class
+  aa=as.data.frame(healthy_subdf %>% group_by(Class) %>% summarise(mean=mean(value)))
+  aaa=as.data.frame(aa %>% mutate(pct=mean/sum(mean)))
+  top5<-aaa[order(aaa$pct,decreasing = T),'Class'][1:5]
+  healthy_subdf[healthy_subdf$Class %not_in% top5,'Class']<-'Other resistome'
+
+  healthy_subdf =as.data.frame(healthy_subdf %>% mutate(pct=value/sum(value)))
+  z1<-healthy_subdf[,c('Class','genus','pct')]
+  names(z1)[1]<-'source'
+  names(z1)[2]<-'target'
+  names(z1)[3]<-'pct'
+  
+  z2<-healthy_subdf[,c('genus','phyla','pct')]
+  names(z2)[1]<-'source'
+  names(z2)[2]<-'target'
+  names(z2)[3]<-'pct'
+  
+  z1<-aggregate(pct~source+target,FUN=sum,data=z1)
+  z2<-aggregate(pct~source+target,FUN=sum,data=z2)
+  z3<-as.data.frame(bind_rows(z1,z2))
+
+  #  ***** changing this is the key***********************************************************
+  nodes <- data.frame(unique(c(z3$source,z3$target)),stringsAsFactors=FALSE)
+  # ************************************************************************************************
+  nodes$ID <- as.numeric(rownames(nodes)) - 1 # sankeyNetwork requires IDs to be zero-indexed
+  names(nodes) <- c("name", "ID")
+  # use dplyr join over merge since much better; in this case not big enough to matter
+  # Replace source & target in links DF with IDs
+  links <- inner_join(z3, nodes, by = c("source"="name")) 
+  names(links)[names(links)=='ID']<-'source_ID'
+  
+  links<-inner_join(links,nodes, by = c("target"="name")) 
+  names(links)[names(links)=='ID']<-'target_ID'
+  
+  # Create Sankey Plot
+  sank <- sankeyNetwork(
+    Links = links,
+    Nodes = nodes,
+    Source = "source_ID",
+    Target = "target_ID",
+    Value = "pct",
+    NodeID = "name",
+    fontSize = 20,
+    nodeWidth = 22
+  )
+  
+  #save as html
+  require(htmlwidgets)
+  saveWidget(sank, file=paste0('Month',i,'.html'))
+
+  #transform html to pdf
+  require(webshot)
+  webshot(paste0('Month',i,'.html'), file=paste0('Month',i,'.pdf'))
+
+}
+
+```
+
+#fig3b
+```{r}
+`%not_in%` <- purrr::negate(`%in%`)
+healthy_df<-merge(zz2,map_healthy_infant,by="RUN")[,c("RUN","Class","genus","phyla","value","Month")]
+
+healthy_df[healthy_df$phyla %not_in% c('Bacteroidetes','Actinobacteria','Firmicutes','Firmicutes','Proteobacteria'),'phyla']<-'Other phyla'
+healthy_df<-aggregate(value~RUN + Class+genus+phyla+Month, FUN = sum, data=healthy_df)
+healthy_df<-aggregate(value~Class+genus+phyla+Month,FUN=mean,data=healthy_df)
+#healthy_df$pct<-healthy_df$value/sum(healthy_df$value)
+```
+
+
+```{r}
+genus_dt<-healthy_df[,c('genus','Month','value')]
+phyla_dt<-healthy_df[,c('phyla','Month','value')]
+genus_dt<-aggregate(value~genus+Month,FUN=sum,data=healthy_df)
+phyla_dt<-aggregate(value~phyla+Month,FUN=sum,data=healthy_df)
+```
+
+```{r}
+genus_summary=as.data.frame(genus_dt%>% group_by(Month) %>% mutate(percent=value/sum(value)))
+head(genus_summary)
+write.csv(genus_summary,row.names = F,quote=F,file='genus_summary.csv')
+```
+
+```{r}
+phyla_summary=as.data.frame(phyla_dt%>% group_by(Month) %>% mutate(percent=value/sum(value)))
+head(phyla_summary)
+write.csv(phyla_summary,row.names = F,quote=F,file='phyla_summary.csv')
+```
+
+```{r}
+genus_summary %>% group_by(genus) %>% summarize(mean(percent))
+```
+
+```{r}
+phyla_summary %>% group_by(phyla) %>% summarize(mean(percent))
+```
+```{r}
+mypal=c("#E64B35E5", "#4DBBD5E5", "#00A087E5" ,"#3C5488E5" ,"#F39B7FE5" ,"#8491B4E5", "#91D1C2E5" ,"#DC0000E5")
+```
+
+#fig3b-phyla
+```{r}
+ggplot(phyla_summary, aes(x = Month, y = ordered(phyla,levels=c('Other phyla',
+                                                          'Bacteroidetes',
+                                                          'Firmicutes',
+                                                          'Actinobacteria',
+                                                          'Proteobacteria')))) + 
+  geom_point(aes(size = percent*60, fill =phyla), alpha = 0.75, shape = 21)+
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,25), breaks = c(1,10,50,75)) + 
+  labs( x= "", y = "", size = "Relative Abundance (%)", fill = "")+
+  theme(legend.key=element_blank(), 
+        axis.text.x = element_text(colour = "black", size = 12, face = "bold", vjust = 0.3, hjust = 1), 
+        axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
+        legend.text = element_text(size = 10, face ="bold", colour ="black"), 
+        legend.title = element_text(size = 12, face = "bold"), 
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2), 
+        legend.position = "right") +
+  scale_x_discrete(name ="Month",limits=c(0:14))+scale_y_discrete(name ="Phyla")#+
+  scale_fill_manual(values = mypal, guide = FALSE) 
+```
+
+
+#fig3c-genus
+```{r}
+`%not_in%` <- purrr::negate(`%in%`)
+healthy_df<-merge(zz2,map_healthy_infant,by="RUN")[,c("RUN","Class","genus","phyla","value","Month")]
+genus_dt<-aggregate(value~RUN +genus+Month, FUN = sum, data=healthy_df)
+```
+
+```{r}
+#detect the genus should appear > 20% samples
+h=genus_dt %>% group_by(genus) %>% summarize(n())
+setDT(h)
+rare_sample<-h[h$`n()`<length(unique(genus_dt$RUN))*0.2,'genus']
+```
+
+
+```{r}
+genus_dt[genus_dt$genus %in% as.data.frame(rare_sample)$genus, 'genus']<-'Other genus'
+genus_dt[genus_dt$genus=='Unknown','genus']<-'Other genus'
+```
+
+```{r}
+genus_dt<-aggregate(value~RUN +genus+Month, FUN = sum, data=genus_dt)
+```
+
+```{r}
+genus_dt<-aggregate(value~genus+Month,FUN=mean,data=genus_dt)
+genus_dt=as.data.frame(genus_dt %>% group_by(Month) %>% mutate(percent=value/sum(value)))
+```
+
+```{r}
+genus_table=as.data.frame(genus_dt %>% group_by(genus) %>% summarize(mean(percent)))
+```
+
+```{r}
+genus_table[order(genus_table$`mean(percent)`,decreasing=T),]
+```
+
+
+```{r}
+ggplot(genus_dt, aes(x = Month, y = ordered(genus,levels=genus_table[order(genus_table$`mean(percent)`,decreasing=F),]$genus[c(32,1:31,33:39)]))) + 
+  geom_point(aes(size = percent*60, fill =genus), alpha = 0.75, shape = 21)+
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,25), breaks = c(1,10,50,75)) + 
+  labs( x= "", y = "", size = "Relative Abundance (%)", fill = "")+
+  theme(legend.key=element_blank(), 
+        legend.position = "none",
+        axis.text.x = element_text(colour = "black", size = 12, face = "bold", vjust = 0.3, hjust = 1), 
+        axis.text.y = element_text(colour = "black", face = "bold", size = 11), 
+        panel.background = element_blank(),
+        panel.border = element_rect(colour = "black", fill = NA, size = 1.2))+
+  scale_x_discrete(name ="Month",limits=c(0:14))+scale_y_discrete(name ="Genus")
+```
+
+
+
+
